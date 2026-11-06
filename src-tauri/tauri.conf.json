@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Video Press",
+  "version": "0.1.0",
+  "identifier": "jp.videopress.desktop",
+  "build": {"beforeDevCommand":"npm run dev","beforeBuildCommand":"npm run build","devUrl":"http://localhost:5173","frontendDist":"../dist"},
+  "app": {"windows":[{"label":"main","title":"Video Press","width":1200,"height":900,"minWidth":720,"minHeight":600}],"security":{"csp":"default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; connect-src ipc: http://ipc.localhost"}},
+  "bundle": {"active":true,"targets":["nsis"],"resources":{"../LICENSES/":"licenses/"},"shortDescription":"動画の一括変換","category":"Video","windows":{"nsis":{"languages":["Japanese"],"displayLanguageSelector":false}}}
+}
