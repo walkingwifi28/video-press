@@ -16,7 +16,6 @@ export function useVideoPress() {
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [results, setResults] = useState<ProbeResult[]>([]);
   const [settingsById, setSettingsById] = useState<Record<string, Settings>>({});
-  const [outputDir, setOutputDir] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [probing, setProbing] = useState(false);
@@ -112,12 +111,6 @@ export function useVideoPress() {
       if (selected) await addPaths(typeof selected === 'string' ? [selected] : selected);
     } catch (e) { setError(message(e)); }
   };
-  const chooseOutput = async () => {
-    try {
-      const selected = await open({ directory: true, multiple: false, title: '出力先フォルダーを選択' });
-      if (typeof selected === 'string') setOutputDir(selected);
-    } catch (e) { setError(message(e)); }
-  };
   const remove = (path: string) => {
     if (busyRef.current || batchRef.current || startingRef.current) return;
     pathsRef.current.delete(pathKey(path));
@@ -129,7 +122,7 @@ export function useVideoPress() {
     if (busyRef.current || batchRef.current || startingRef.current) return;
     pathsRef.current.clear(); setResults([]); setSettingsById({}); setProgress({});
   };
-  const canStart = native && listenerReady && !!environment?.ffmpeg && !!environment.ffprobe && videos.every((v) => environment.encoders.includes(encoderNames[settingsFor(v.id).codec])) && !!videos.length && !!outputDir.trim() && videos.every((v) => validSettings(settingsFor(v.id)) && dimensions(v, settingsFor(v.id).resolution).every((n) => n >= 2)) && !probing && !running && !starting;
+  const canStart = native && listenerReady && !!environment?.ffmpeg && !!environment.ffprobe && videos.every((v) => environment.encoders.includes(encoderNames[settingsFor(v.id).codec])) && !!videos.length && videos.every((v) => validSettings(settingsFor(v.id)) && dimensions(v, settingsFor(v.id).resolution).every((n) => n >= 2)) && !probing && !running && !starting;
   const start = async () => {
     if (!canStart || batchRef.current || busyRef.current || startingRef.current) return;
     const batchId = crypto.randomUUID();
@@ -137,7 +130,7 @@ export function useVideoPress() {
     startingRef.current = true;
     setStarting(true);
     setRunning(true); setCancelling(false); setProgress({}); setError(''); setNotice('');
-    try { await invoke('start_batch', { batchId, jobs, outputDir }); }
+    try { await invoke('start_batch', { batchId, jobs }); }
     catch (e) {
       if (batchRef.current === batchId) { batchRef.current = null; setRunning(false); setCancelling(false); }
       setError(`変換を開始できませんでした。${message(e)}`);
@@ -150,5 +143,5 @@ export function useVideoPress() {
     try { await invoke('cancel_batch', { batchId: batchRef.current }); }
     catch (e) { setCancelling(false); setError(`停止できませんでした。${message(e)}`); }
   };
-  return { native, environment, results, videos, settingsFor, updateSettings, outputDir, setOutputDir, error, notice, probing, running, starting, cancelling, dragging, progress, canStart, selectFiles, chooseOutput, remove, clear, start, cancel };
+  return { native, environment, results, videos, settingsFor, updateSettings, error, notice, probing, running, starting, cancelling, dragging, progress, canStart, selectFiles, remove, clear, start, cancel };
 }

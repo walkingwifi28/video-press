@@ -57,7 +57,6 @@ pub struct BatchState {
 pub async fn run_batch(
     batch_id: String,
     jobs: Vec<ConversionJob>,
-    directory: String,
     cancel: Cancellation,
     emit: impl Fn(Progress) + Send + Sync,
 ) -> Result<(), String> {
@@ -92,7 +91,9 @@ pub async fn run_batch(
             if cancel.is_cancelled() {
                 return Err("変換を中止しました。".into());
             }
-            let directory = Path::new(&directory);
+            let directory = Path::new(&video.path)
+                .parent()
+                .ok_or("元動画の保存先フォルダーを取得できません。")?;
             let temp = output::reserve(directory, encoding::extension(&settings.container))?;
             let args = encoding::arguments(&video, &settings, &temp.path.to_string_lossy())?;
             let mut child = probe::command("ffmpeg")
@@ -163,10 +164,7 @@ pub async fn run_batch(
             if cancel.is_cancelled() {
                 return Err("変換を中止しました。".into());
             }
-            let stem = Path::new(&video.path)
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy();
+            let stem = output::file_stem(&video, &settings)?;
             output::finalize(
                 &temp,
                 directory,

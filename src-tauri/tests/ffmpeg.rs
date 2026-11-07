@@ -75,7 +75,6 @@ async fn av1_encodes_mp4_mkv_and_webm() {
                 path: input.to_string_lossy().into(),
                 settings: config,
             }],
-            dir.to_string_lossy().into(),
             Cancellation::default(),
             move |event| collected.lock().unwrap().push(event),
         )
@@ -90,6 +89,10 @@ async fn av1_encodes_mp4_mkv_and_webm() {
             .as_deref()
             .unwrap();
         let inspected = probe::inspect(output).await.unwrap();
+        assert_eq!(
+            PathBuf::from(output).file_name().unwrap().to_str().unwrap(),
+            format!("AV1 input_12_av1_852x480_24fps_crf32.{container}")
+        );
         assert_eq!((inspected.width, inspected.height), (852.0, 480.0));
         assert_eq!(inspected.fps, Some(24.0));
         let codec = probe::command("ffprobe")
@@ -118,7 +121,7 @@ async fn real_batch_continues_after_failure_and_never_overwrites() {
     let dir = directory();
     let input = dir.join("日本語 input.mp4");
     sample(&input, "0.3").await;
-    let existing = dir.join("日本語 input_converted.mp4");
+    let existing = dir.join("日本語 input_ultrafast_h264_852x480_24fps_crf23.mp4");
     fs::write(&existing, b"keep").unwrap();
     let bad = dir.join("broken.mp4");
     fs::write(&bad, b"invalid").unwrap();
@@ -136,7 +139,6 @@ async fn real_batch_continues_after_failure_and_never_overwrites() {
                 settings: settings(),
             },
         ],
-        dir.to_string_lossy().into(),
         Cancellation::default(),
         move |e| collected.lock().unwrap().push(e),
     )
@@ -151,6 +153,11 @@ async fn real_batch_continues_after_failure_and_never_overwrites() {
     let video = probe::inspect(result.output_path.as_deref().unwrap())
         .await
         .unwrap();
+    assert!(result
+        .output_path
+        .as_deref()
+        .unwrap()
+        .ends_with("日本語 input_ultrafast_h264_852x480_24fps_crf23_1.mp4"));
     assert_eq!((video.width, video.height), (852.0, 480.0));
     assert!(!video.has_audio);
     assert_eq!(video.fps, Some(24.0));
@@ -176,7 +183,6 @@ async fn cancellation_removes_incomplete_output_and_marks_remaining() {
             path: input.to_string_lossy().into(),
             settings: settings(),
         }],
-        dir.to_string_lossy().into(),
         cancellation,
         move |e| {
             if e.status == "running" && e.progress > 0.0 {
@@ -245,7 +251,6 @@ async fn rotated_anamorphic_input_becomes_square_pixel_portrait() {
             path: rotated.to_string_lossy().into(),
             settings: config,
         }],
-        dir.to_string_lossy().into(),
         Cancellation::default(),
         move |e| collected.lock().unwrap().push(e),
     )
@@ -263,6 +268,7 @@ async fn rotated_anamorphic_input_becomes_square_pixel_portrait() {
     let result = probe::inspect(&output_path).await.unwrap();
     assert_eq!((result.width, result.height), (426.0, 854.0));
     assert_eq!(result.fps_rational.as_deref(), Some("30000/1001"));
+    assert!(output_path.ends_with("rotated_ultrafast_h264_426x854_29.97fps_crf23.mp4"));
     fs::remove_dir_all(dir).unwrap();
 }
 
@@ -270,7 +276,9 @@ async fn rotated_anamorphic_input_becomes_square_pixel_portrait() {
 async fn mixed_jobs_keep_their_own_settings() {
     let dir = directory();
     let first = dir.join("first.mp4");
-    let second = dir.join("second.mp4");
+    let second_dir = dir.join("別のフォルダー");
+    fs::create_dir(&second_dir).unwrap();
+    let second = second_dir.join("second.mp4");
     sample(&first, "0.3").await;
     fs::copy(&first, &second).unwrap();
     let mut other = settings();
@@ -293,7 +301,6 @@ async fn mixed_jobs_keep_their_own_settings() {
                 settings: other,
             },
         ],
-        dir.to_string_lossy().into(),
         Cancellation::default(),
         move |e| collected.lock().unwrap().push(e),
     )
@@ -307,12 +314,20 @@ async fn mixed_jobs_keep_their_own_settings() {
         .map(|e| e.output_path.clone().unwrap())
         .collect();
     assert_eq!(outputs.len(), 2);
+    assert_eq!(
+        fs::canonicalize(&outputs[0]).unwrap().parent().unwrap(),
+        fs::canonicalize(&dir).unwrap()
+    );
+    assert_eq!(
+        fs::canonicalize(&outputs[1]).unwrap().parent().unwrap(),
+        fs::canonicalize(&second_dir).unwrap()
+    );
     let a = probe::inspect(&outputs[0]).await.unwrap();
     let b = probe::inspect(&outputs[1]).await.unwrap();
     assert_eq!((a.width, a.height, a.fps), (852.0, 480.0, Some(24.0)));
     assert_eq!((b.width, b.height), (960.0, 540.0));
     assert!((b.fps.unwrap() - 29.97).abs() < 0.01);
-    assert!(outputs[0].ends_with(".mp4"));
-    assert!(outputs[1].ends_with(".mkv"));
+    assert!(outputs[0].ends_with("first_ultrafast_h264_852x480_24fps_crf23.mp4"));
+    assert!(outputs[1].ends_with("second_veryfast_h264_960x540_29.97fps_crf35.mkv"));
     fs::remove_dir_all(dir).unwrap();
 }

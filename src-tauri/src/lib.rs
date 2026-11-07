@@ -31,18 +31,12 @@ async fn start_batch(
     state: tauri::State<'_, Arc<BatchState>>,
     batch_id: String,
     jobs: Vec<ConversionJob>,
-    output_dir: String,
 ) -> Result<(), String> {
     for job in &jobs {
         encoding::validate(&job.settings)?;
     }
     if batch_id.is_empty() || batch_id.len() > 200 || jobs.is_empty() {
         return Err("入力動画とバッチIDが必要です。".into());
-    }
-    let directory =
-        std::fs::canonicalize(&output_dir).map_err(|e| format!("出力先を開けません: {e}"))?;
-    if !directory.is_dir() {
-        return Err("出力先フォルダーを選択してください。".into());
     }
     let env = probe::environment().await;
     if !env.ffmpeg || !env.ffprobe {
@@ -81,17 +75,11 @@ async fn start_batch(
     }
     let state = Arc::clone(state.inner());
     tauri::async_runtime::spawn(async move {
-        let result = batch::run_batch(
-            batch_id.clone(),
-            jobs,
-            directory.to_string_lossy().into(),
-            cancellation,
-            |event| {
-                if event.status != "finished" {
-                    let _ = app.emit("batch-progress", event);
-                }
-            },
-        )
+        let result = batch::run_batch(batch_id.clone(), jobs, cancellation, |event| {
+            if event.status != "finished" {
+                let _ = app.emit("batch-progress", event);
+            }
+        })
         .await;
         if let Ok(mut active) = state.active.lock() {
             *active = None;
