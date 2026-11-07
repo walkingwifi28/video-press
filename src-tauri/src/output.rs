@@ -37,8 +37,8 @@ pub fn file_stem(video: &VideoInfo, settings: &Settings) -> Result<String, Strin
         })
         .unwrap_or_else(|| "unknown".into());
     Ok(format!(
-        "{source}_{}_{codec}_{width}x{height}_{fps}fps_crf{}",
-        settings.preset, settings.crf
+        "{source}_{width}x{height}_{fps}fps_crf{}_{codec}_{}",
+        settings.crf, settings.preset
     ))
 }
 
@@ -125,7 +125,7 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         let temp = reserve(&dir, "mp4").unwrap();
         fs::write(&temp.path, b"new").unwrap();
-        let stem = "sample_medium_h264_1280x720_30fps_crf23";
+        let stem = "sample_1280x720_30fps_crf23_h264_medium";
         let existing = dir.join(format!("{stem}.mp4"));
         fs::write(&existing, b"existing").unwrap();
         let final_path = finalize(&temp, &dir, stem, "mp4").unwrap();

@@ -91,7 +91,7 @@ async fn av1_encodes_mp4_mkv_and_webm() {
         let inspected = probe::inspect(output).await.unwrap();
         assert_eq!(
             PathBuf::from(output).file_name().unwrap().to_str().unwrap(),
-            format!("AV1 input_12_av1_852x480_24fps_crf32.{container}")
+            format!("AV1 input_852x480_24fps_crf32_av1_12.{container}")
         );
         assert_eq!((inspected.width, inspected.height), (852.0, 480.0));
         assert_eq!(inspected.fps, Some(24.0));
@@ -121,7 +121,7 @@ async fn real_batch_continues_after_failure_and_never_overwrites() {
     let dir = directory();
     let input = dir.join("日本語 input.mp4");
     sample(&input, "0.3").await;
-    let existing = dir.join("日本語 input_ultrafast_h264_852x480_24fps_crf23.mp4");
+    let existing = dir.join("日本語 input_852x480_24fps_crf23_h264_ultrafast.mp4");
     fs::write(&existing, b"keep").unwrap();
     let bad = dir.join("broken.mp4");
     fs::write(&bad, b"invalid").unwrap();
@@ -157,7 +157,7 @@ async fn real_batch_continues_after_failure_and_never_overwrites() {
         .output_path
         .as_deref()
         .unwrap()
-        .ends_with("日本語 input_ultrafast_h264_852x480_24fps_crf23_1.mp4"));
+        .ends_with("日本語 input_852x480_24fps_crf23_h264_ultrafast_1.mp4"));
     assert_eq!((video.width, video.height), (852.0, 480.0));
     assert!(!video.has_audio);
     assert_eq!(video.fps, Some(24.0));
@@ -268,7 +268,7 @@ async fn rotated_anamorphic_input_becomes_square_pixel_portrait() {
     let result = probe::inspect(&output_path).await.unwrap();
     assert_eq!((result.width, result.height), (426.0, 854.0));
     assert_eq!(result.fps_rational.as_deref(), Some("30000/1001"));
-    assert!(output_path.ends_with("rotated_ultrafast_h264_426x854_29.97fps_crf23.mp4"));
+    assert!(output_path.ends_with("rotated_426x854_29.97fps_crf23_h264_ultrafast.mp4"));
     fs::remove_dir_all(dir).unwrap();
 }
 
@@ -327,7 +327,7 @@ async fn mixed_jobs_keep_their_own_settings() {
     assert_eq!((a.width, a.height, a.fps), (852.0, 480.0, Some(24.0)));
     assert_eq!((b.width, b.height), (960.0, 540.0));
     assert!((b.fps.unwrap() - 29.97).abs() < 0.01);
-    assert!(outputs[0].ends_with("first_ultrafast_h264_852x480_24fps_crf23.mp4"));
-    assert!(outputs[1].ends_with("second_veryfast_h264_960x540_29.97fps_crf35.mkv"));
+    assert!(outputs[0].ends_with("first_852x480_24fps_crf23_h264_ultrafast.mp4"));
+    assert!(outputs[1].ends_with("second_960x540_29.97fps_crf35_h264_veryfast.mkv"));
     fs::remove_dir_all(dir).unwrap();
 }

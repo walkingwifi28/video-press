@@ -11,7 +11,7 @@ const results: ProbeResult[] = [
 describe('動画ごとの設定一覧', () => {
   it('指定された列順で表示し、動画ごとに異なる設定と解像度候補を持つ', () => {
     const html = renderToStaticMarkup(<VideoList results={results} progress={{}} settingsFor={(id) => id === 'a' ? initialSettings : changeCodec(initialSettings, 'vp9')} onChange={() => {}} environment={null} disabled={false} remove={() => {}} />);
-    expect([...html.matchAll(/<th scope="col">(.*?)<\/th>/g)].map((m) => m[1])).toEqual(['動画', '入力', 'コーデック', '出力形式', '画質', '解像度', 'FPS', '変換速度', '状態', '削除']);
+    expect([...html.matchAll(/<th scope="col">(.*?)<\/th>/g)].map((m) => m[1])).toEqual(['動画', '入力', '解像度', 'FPS', '画質', 'コーデック', '出力形式', '変換速度', '状態', '削除']);
     const rows = html.split('<tbody>')[1].split('</tr>');
     expect(rows[0]).toContain('value="h264" selected=""');
     expect(rows[1]).toContain('value="vp9" selected=""');
