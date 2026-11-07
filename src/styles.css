@@ -77,8 +77,14 @@ pre { font: 12px/1.6 'Consolas', monospace; white-space: pre-wrap; word-break: b
 .video-table { min-width: 1420px; }
 .video-table td { padding: 12px; }
 .video-table select, .video-table input { min-height: 44px; font-size: 14px; padding: 8px 10px; }
-.video-table select { padding-right: 28px; min-width: 112px; }
+.video-table select { padding-right: 36px; min-width: 112px; }
 .video-table input { min-width: 80px; width: 80px; }
+.quality-control { position: relative; min-width: 160px; }
+.video-table input[type='range'] { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; accent-color: var(--key); cursor: pointer; }
+.video-table input[type='range']:disabled { cursor: not-allowed; }
+.slider-value { position: absolute; bottom: calc(100% - 8px); left: 50%; transform: translateX(-50%); z-index: 1; padding: 2px 8px; border-radius: 4px; background: #1a1a1c; color: #fff; font-size: 12px; line-height: 1.5; white-space: nowrap; pointer-events: none; visibility: hidden; }
+.video-table input[type='range']:is(:active, :focus-visible):not(:disabled) + .slider-value { visibility: visible; }
+.quality-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .video-table td:nth-child(6) select { min-width: 166px; }
 .video-table .file-name { max-width: 230px; }
 .info-button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 4px; padding: 4px; vertical-align: middle; border: 0; border-radius: 50%; color: var(--key); background: transparent; }
@@ -89,9 +95,9 @@ pre { font: 12px/1.6 'Consolas', monospace; white-space: pre-wrap; word-break: b
 .info-popover p + p { margin-top: 8px; }
 label { display: block; font-size: 16px; line-height: 1.5; font-weight: 700; margin-bottom: 8px; }
 input, select { color: #1a1a1c; background-color: #fff; border: 1px solid #77777b; border-radius: 8px; min-height: 48px; width: 100%; padding: 10px 16px; line-height: 1.5; }
-select { cursor: pointer; padding-right: 36px; }
+select { appearance: none; cursor: pointer; padding-right: 36px; background-image: url('./assets/chevron-down.svg'); background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 12px; }
 input:hover:not(:disabled), select:hover:not(:disabled) { border-color: #1a1a1c; }
-input:disabled, select:disabled { color: #777; background: #f1f1f4; border-color: #c8c8cb; }
+input:disabled, select:disabled { color: #777; background-color: #f1f1f4; border-color: #c8c8cb; }
 input[aria-invalid='true'] { border: 2px solid #b80000; }
 .output-actions { margin-top: 28px; padding: 24px; background: #f5f5f7; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .output-actions .hint { margin-top: 4px; }
@@ -113,4 +119,4 @@ footer span { margin-left: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 1000px) { .header-inner { padding: 20px 28px; } main { padding: 28px 28px 0; } .header-description { display: none; } }
 @media (max-width: 640px) { .header-inner { padding: 16px 20px; gap: 12px; flex-wrap: wrap; } .brand { font-size: 20px; } .environment { font-size: 11px; } main { padding: 24px 20px 0; } h1 { font-size: 26px; } h2 { font-size: 20px; } .page-title p { font-size: 14px; } .section-heading { align-items: flex-start; flex-wrap: wrap; } .drop-zone { flex-direction: column; text-align: center; gap: 16px; } .output-actions { flex-direction: column; align-items: stretch; } .action-buttons { justify-content: flex-end; } .output-actions { padding: 20px; } footer { flex-wrap: wrap; gap: 8px; } }
-@media (forced-colors: active) { .step-number { border: 1px solid; } .button { border: 1px solid; } progress { border: 1px solid; } }
+@media (forced-colors: active) { .step-number { border: 1px solid; } .button { border: 1px solid; } progress { border: 1px solid; } select { appearance: auto; background-image: none; } }
