@@ -67,3 +67,10 @@ pub struct Environment {
     pub encoders: Vec<String>,
     pub errors: Vec<String>,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ConversionJob {
+    pub path: String,
+    pub settings: Settings,
+}

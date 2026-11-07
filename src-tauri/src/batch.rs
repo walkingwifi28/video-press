@@ -1,6 +1,6 @@
 use crate::{
     encoding,
-    model::{Progress, Settings},
+    model::{ConversionJob, Progress},
     output, probe,
 };
 use std::{
@@ -56,13 +56,14 @@ pub struct BatchState {
 
 pub async fn run_batch(
     batch_id: String,
-    paths: Vec<String>,
+    jobs: Vec<ConversionJob>,
     directory: String,
-    settings: Settings,
     cancel: Cancellation,
     emit: impl Fn(Progress) + Send + Sync,
 ) -> Result<(), String> {
-    encoding::validate(&settings)?;
+    for job in &jobs {
+        encoding::validate(&job.settings)?;
+    }
     let event = |file_id: &str,
                  status: &str,
                  progress: f64,
@@ -77,10 +78,10 @@ pub async fn run_batch(
             error,
         })
     };
-    for path in &paths {
-        event(path, "queued", 0.0, None, None);
+    for job in &jobs {
+        event(&job.path, "queued", 0.0, None, None);
     }
-    for path in paths {
+    for ConversionJob { path, settings } in jobs {
         if cancel.is_cancelled() {
             event(&path, "cancelled", 0.0, None, None);
             continue;

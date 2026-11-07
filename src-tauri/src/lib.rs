@@ -4,7 +4,7 @@ pub mod model;
 pub mod output;
 pub mod probe;
 use batch::{Active, BatchState, Cancellation};
-use model::{Environment, ProbeResult, Progress, Settings};
+use model::{ConversionJob, Environment, ProbeResult, Progress};
 use std::sync::{atomic::Ordering, Arc};
 use tauri::{Emitter, Manager};
 
@@ -30,12 +30,13 @@ async fn start_batch(
     app: tauri::AppHandle,
     state: tauri::State<'_, Arc<BatchState>>,
     batch_id: String,
-    paths: Vec<String>,
+    jobs: Vec<ConversionJob>,
     output_dir: String,
-    settings: Settings,
 ) -> Result<(), String> {
-    encoding::validate(&settings)?;
-    if batch_id.is_empty() || batch_id.len() > 200 || paths.is_empty() {
+    for job in &jobs {
+        encoding::validate(&job.settings)?;
+    }
+    if batch_id.is_empty() || batch_id.len() > 200 || jobs.is_empty() {
         return Err("入力動画とバッチIDが必要です。".into());
     }
     let directory =
@@ -47,17 +48,22 @@ async fn start_batch(
     if !env.ffmpeg || !env.ffprobe {
         return Err(env.errors.join("\n"));
     }
-    if !env
-        .encoders
-        .iter()
-        .any(|e| e == encoding::encoder(&settings.codec))
-    {
-        return Err("選択したコーデックを現在のffmpegで使用できません。".into());
+    for job in &jobs {
+        if !env
+            .encoders
+            .iter()
+            .any(|e| e == encoding::encoder(&job.settings.codec))
+        {
+            return Err(format!(
+                "{}: 選択したコーデックを現在のffmpegで使用できません。",
+                job.path
+            ));
+        }
     }
     let mut seen = std::collections::HashSet::new();
-    let paths: Vec<_> = paths
+    let jobs: Vec<_> = jobs
         .into_iter()
-        .filter(|p| seen.insert(p.clone()))
+        .filter(|job| seen.insert(job.path.clone()))
         .collect();
     let cancellation = Cancellation::default();
     {
@@ -77,9 +83,8 @@ async fn start_batch(
     tauri::async_runtime::spawn(async move {
         let result = batch::run_batch(
             batch_id.clone(),
-            paths,
+            jobs,
             directory.to_string_lossy().into(),
-            settings,
             cancellation,
             |event| {
                 if event.status != "finished" {

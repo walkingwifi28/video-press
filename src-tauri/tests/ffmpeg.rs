@@ -6,7 +6,7 @@ use std::{
 };
 use video_press_lib::{
     batch::{run_batch, Cancellation},
-    model::{Codec, Container, Settings},
+    model::{Codec, Container, ConversionJob, Settings},
     probe,
 };
 
@@ -71,9 +71,11 @@ async fn av1_encodes_mp4_mkv_and_webm() {
         let collected = events.clone();
         run_batch(
             "av1-test".into(),
-            vec![input.to_string_lossy().into()],
+            vec![ConversionJob {
+                path: input.to_string_lossy().into(),
+                settings: config,
+            }],
             dir.to_string_lossy().into(),
-            config,
             Cancellation::default(),
             move |event| collected.lock().unwrap().push(event),
         )
@@ -124,9 +126,17 @@ async fn real_batch_continues_after_failure_and_never_overwrites() {
     let collected = events.clone();
     run_batch(
         "test".into(),
-        vec![bad.to_string_lossy().into(), input.to_string_lossy().into()],
+        vec![
+            ConversionJob {
+                path: bad.to_string_lossy().into(),
+                settings: settings(),
+            },
+            ConversionJob {
+                path: input.to_string_lossy().into(),
+                settings: settings(),
+            },
+        ],
         dir.to_string_lossy().into(),
-        settings(),
         Cancellation::default(),
         move |e| collected.lock().unwrap().push(e),
     )
@@ -162,9 +172,11 @@ async fn cancellation_removes_incomplete_output_and_marks_remaining() {
     let collected = events.clone();
     run_batch(
         "cancel".into(),
-        vec![input.to_string_lossy().into()],
+        vec![ConversionJob {
+            path: input.to_string_lossy().into(),
+            settings: settings(),
+        }],
         dir.to_string_lossy().into(),
-        settings(),
         cancellation,
         move |e| {
             if e.status == "running" && e.progress > 0.0 {
@@ -229,9 +241,11 @@ async fn rotated_anamorphic_input_becomes_square_pixel_portrait() {
     config.fps = 0;
     run_batch(
         "rotation".into(),
-        vec![rotated.to_string_lossy().into()],
+        vec![ConversionJob {
+            path: rotated.to_string_lossy().into(),
+            settings: config,
+        }],
         dir.to_string_lossy().into(),
-        config,
         Cancellation::default(),
         move |e| collected.lock().unwrap().push(e),
     )
@@ -249,5 +263,56 @@ async fn rotated_anamorphic_input_becomes_square_pixel_portrait() {
     let result = probe::inspect(&output_path).await.unwrap();
     assert_eq!((result.width, result.height), (426.0, 854.0));
     assert_eq!(result.fps_rational.as_deref(), Some("30000/1001"));
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[tokio::test]
+async fn mixed_jobs_keep_their_own_settings() {
+    let dir = directory();
+    let first = dir.join("first.mp4");
+    let second = dir.join("second.mp4");
+    sample(&first, "0.3").await;
+    fs::copy(&first, &second).unwrap();
+    let mut other = settings();
+    other.container = Container::Mkv;
+    other.resolution = 0;
+    other.fps = 0;
+    other.crf = 35;
+    other.preset = "veryfast".into();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let collected = events.clone();
+    run_batch(
+        "mixed".into(),
+        vec![
+            ConversionJob {
+                path: first.to_string_lossy().into(),
+                settings: settings(),
+            },
+            ConversionJob {
+                path: second.to_string_lossy().into(),
+                settings: other,
+            },
+        ],
+        dir.to_string_lossy().into(),
+        Cancellation::default(),
+        move |e| collected.lock().unwrap().push(e),
+    )
+    .await
+    .unwrap();
+    let outputs: Vec<_> = events
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|e| e.status == "completed")
+        .map(|e| e.output_path.clone().unwrap())
+        .collect();
+    assert_eq!(outputs.len(), 2);
+    let a = probe::inspect(&outputs[0]).await.unwrap();
+    let b = probe::inspect(&outputs[1]).await.unwrap();
+    assert_eq!((a.width, a.height, a.fps), (852.0, 480.0, Some(24.0)));
+    assert_eq!((b.width, b.height), (960.0, 540.0));
+    assert!((b.fps.unwrap() - 29.97).abs() < 0.01);
+    assert!(outputs[0].ends_with(".mp4"));
+    assert!(outputs[1].ends_with(".mkv"));
     fs::remove_dir_all(dir).unwrap();
 }

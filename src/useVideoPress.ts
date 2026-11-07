@@ -5,7 +5,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open } from '@tauri-apps/plugin-dialog';
 import { codecSchema, environmentSchema, probeResultsSchema, progressSchema } from './types';
 import type { Environment, FileProgress, ProbeResult, Settings } from './types';
-import { availableResolutions, changeCodec, encoderNames, initialSettings, reconcileResolution, validSettings } from './settings';
+import { changeCodec, dimensions, encoderNames, initialSettings, validSettings } from './settings';
 import { pathKey } from './paths';
 
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -15,7 +15,7 @@ export function useVideoPress() {
   const native = isTauri();
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [results, setResults] = useState<ProbeResult[]>([]);
-  const [settings, setSettings] = useState<Settings>(initialSettings);
+  const [settingsById, setSettingsById] = useState<Record<string, Settings>>({});
   const [outputDir, setOutputDir] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -30,10 +30,18 @@ export function useVideoPress() {
   const startingRef = useRef(false);
   const busyRef = useRef(false);
   const pathsRef = useRef(new Set<string>());
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
   const videos = useMemo(() => results.flatMap((r) => r.status === 'ready' ? [r.video] : []), [results]);
-  const resolutions = useMemo(() => availableResolutions(videos), [videos]);
+  const defaultSettings = useMemo(() => {
+    const codec = codecSchema.options.find((codec) => environment?.encoders.includes(encoderNames[codec]));
+    return codec ? changeCodec(initialSettings, codec) : initialSettings;
+  }, [environment]);
+  const settingsFor = (id: string) => settingsById[id] ?? defaultSettings;
+  const jobs = useMemo(() => videos.map((v) => ({ path: v.path, settings: settingsById[v.id] ?? defaultSettings })), [videos, settingsById, defaultSettings]);
+  const updateSettings = (id: string, settings: Settings) => {
+    if (busyRef.current || batchRef.current || startingRef.current) return;
+    setSettingsById((current) => ({ ...current, [id]: settings }));
+    setProgress((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== id)));
+  };
 
   const addPaths = useCallback(async (paths: string[]) => {
     if (busyRef.current || batchRef.current || startingRef.current) return;
@@ -74,8 +82,6 @@ export function useVideoPress() {
       if (disposed) return;
       const env = environmentSchema.parse(value);
       setEnvironment(env);
-      const availableCodec = codecSchema.options.find((codec) => env.encoders.includes(encoderNames[codec]));
-      if (availableCodec) setSettings((s) => env.encoders.includes(encoderNames[s.codec]) ? s : changeCodec(s, availableCodec));
     }).catch((e: unknown) => { if (!disposed) setError(`実行環境を確認できませんでした。${message(e)}`); });
     listen<unknown>('batch-progress', ({ payload }) => {
       const event = progressSchema.safeParse(payload);
@@ -99,14 +105,6 @@ export function useVideoPress() {
     return () => { disposed = true; cleanup.forEach((unlisten) => unlisten()); };
   }, [native, addPaths]);
 
-  useEffect(() => {
-    const resolution = reconcileResolution(settingsRef.current.resolution, resolutions);
-    if (resolution !== settingsRef.current.resolution) {
-      setSettings((s) => ({ ...s, resolution }));
-      setNotice('入力動画に合わせて、解像度を「元サイズ」に戻しました。');
-    }
-  }, [resolutions]);
-
   const selectFiles = async () => {
     if (busyRef.current || batchRef.current || startingRef.current || !native) return;
     try {
@@ -124,13 +122,14 @@ export function useVideoPress() {
     if (busyRef.current || batchRef.current || startingRef.current) return;
     pathsRef.current.delete(pathKey(path));
     setResults((current) => current.filter((r) => resultPath(r) !== path));
+    setSettingsById((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== path)));
     setProgress({});
   };
   const clear = () => {
     if (busyRef.current || batchRef.current || startingRef.current) return;
-    pathsRef.current.clear(); setResults([]); setProgress({});
+    pathsRef.current.clear(); setResults([]); setSettingsById({}); setProgress({});
   };
-  const canStart = native && listenerReady && !!environment?.ffmpeg && !!environment.ffprobe && environment.encoders.includes(encoderNames[settings.codec]) && !!videos.length && !!outputDir.trim() && validSettings(settings) && !probing && !running && !starting;
+  const canStart = native && listenerReady && !!environment?.ffmpeg && !!environment.ffprobe && videos.every((v) => environment.encoders.includes(encoderNames[settingsFor(v.id).codec])) && !!videos.length && !!outputDir.trim() && videos.every((v) => validSettings(settingsFor(v.id)) && dimensions(v, settingsFor(v.id).resolution).every((n) => n >= 2)) && !probing && !running && !starting;
   const start = async () => {
     if (!canStart || batchRef.current || busyRef.current || startingRef.current) return;
     const batchId = crypto.randomUUID();
@@ -138,7 +137,7 @@ export function useVideoPress() {
     startingRef.current = true;
     setStarting(true);
     setRunning(true); setCancelling(false); setProgress({}); setError(''); setNotice('');
-    try { await invoke('start_batch', { batchId, paths: videos.map((v) => v.path), outputDir, settings }); }
+    try { await invoke('start_batch', { batchId, jobs, outputDir }); }
     catch (e) {
       if (batchRef.current === batchId) { batchRef.current = null; setRunning(false); setCancelling(false); }
       setError(`変換を開始できませんでした。${message(e)}`);
@@ -151,5 +150,5 @@ export function useVideoPress() {
     try { await invoke('cancel_batch', { batchId: batchRef.current }); }
     catch (e) { setCancelling(false); setError(`停止できませんでした。${message(e)}`); }
   };
-  return { native, environment, results, videos, settings, setSettings, outputDir, setOutputDir, error, notice, probing, running, starting, cancelling, dragging, progress, resolutions, canStart, selectFiles, chooseOutput, remove, clear, start, cancel };
+  return { native, environment, results, videos, settingsFor, updateSettings, outputDir, setOutputDir, error, notice, probing, running, starting, cancelling, dragging, progress, canStart, selectFiles, chooseOutput, remove, clear, start, cancel };
 }
