@@ -2,6 +2,7 @@ import { codecSchema, containerSchema, fpsSchema, resolutionSchema } from '../ty
 import type { Environment, FileProgress, ProbeResult, Settings } from '../types';
 import { availableResolutions, changeCodec, codecLabels, codecPresets, dimensions, encoderNames, maxCrf, outputFps, supportedContainers, validSettings } from '../settings';
 import { resultPath } from '../useVideoPress';
+import InfoPopover from './InfoPopover';
 
 const statusLabels: Record<FileProgress['status'], string> = { queued: '待機中', running: '変換中', completed: '完了', failed: '失敗', cancelled: 'キャンセル', finished: '処理終了' };
 const fpsLabel = (fps: number | null) => fps === null ? '不明（元のまま）' : `${Math.round(fps * 100) / 100} fps`;
@@ -9,7 +10,7 @@ const durationLabel = (seconds: number) => `${Math.floor(seconds / 60)}:${Math.f
 type Props = { results: ProbeResult[]; progress: Record<string, FileProgress>; settingsFor: (id: string) => Settings; onChange: (id: string, settings: Settings) => void; environment: Environment | null; disabled: boolean; remove: (path: string) => void };
 export default function VideoList({ results, progress, settingsFor, onChange, environment, disabled, remove }: Props) {
   if (!results.length) return null;
-  return <><p className="hint" id="video-settings-hint">各動画の行で設定できます。画質はCRFの数値が小さいほど高画質です。表は横にスクロールできます。</p><div className="table-scroll" role="region" aria-label="動画ごとの変換設定" tabIndex={0}><table className="video-table"><caption className="sr-only">追加した動画の変換設定・処理状況</caption><thead><tr><th scope="col">動画</th><th scope="col">入力</th><th scope="col">解像度</th><th scope="col">FPS</th><th scope="col">画質</th><th scope="col">コーデック</th><th scope="col">出力形式</th><th scope="col">変換速度</th><th scope="col">状態</th><th scope="col">削除</th></tr></thead><tbody>
+  return <><p className="hint" id="video-settings-hint">各動画の行で設定できます。画質はCRFの数値が小さいほど高画質です。表は横にスクロールできます。</p><div className="table-scroll" role="region" aria-label="動画ごとの変換設定" tabIndex={0}><table className="video-table"><caption className="sr-only">追加した動画の変換設定・処理状況</caption><thead><tr><th scope="col">動画</th><th scope="col">入力</th><th scope="col">解像度</th><th scope="col">FPS</th><th scope="col">画質<InfoPopover label="画質（CRF）"><p>数値が小さいほど高画質になり、通常はファイル容量も大きくなります。容量を抑えたい場合は数値を上げてください。</p><p>同じ数値でも、コーデックによって画質は異なります。</p></InfoPopover></th><th scope="col">コーデック</th><th scope="col">出力形式</th><th scope="col">変換速度<InfoPopover label="変換速度"><p>速い設定は変換時間を短縮し、遅い設定は圧縮効率を優先します。同程度の画質なら、遅い設定ほど容量を抑えやすくなります。</p><p>H.264・H.265：slow側ほど低速、fast側ほど高速です。<br />VP9・AV1：数字が大きいほど高速です。</p></InfoPopover></th><th scope="col">状態</th><th scope="col">削除</th></tr></thead><tbody>
     {results.map((result) => {
       const path = resultPath(result);
       if (result.status === 'error') return <tr key={path}><td><strong className="file-name">{path.split(/[\\/]/).pop()}</strong></td><td colSpan={8}><span className="status error-text">解析できません</span><details><summary>エラー詳細</summary><pre>{result.error}</pre></details></td><td><button className="text-button" disabled={disabled} onClick={() => remove(path)} aria-label={`${path}を削除`}>削除</button></td></tr>;

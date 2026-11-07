@@ -81,6 +81,12 @@ pre { font: 12px/1.6 'Consolas', monospace; white-space: pre-wrap; word-break: b
 .video-table input { min-width: 80px; width: 80px; }
 .video-table td:nth-child(6) select { min-width: 166px; }
 .video-table .file-name { max-width: 230px; }
+.info-button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 4px; padding: 4px; vertical-align: middle; border: 0; border-radius: 50%; color: var(--key); background: transparent; }
+.info-button:hover { color: var(--key-hover); background: #e8f1fe; }
+.info-icon { width: 18px; height: 18px; background: currentColor; mask: url('./assets/info.svg') center / contain no-repeat; }
+.info-popover { position: fixed; inset: auto; margin: 0; width: 320px; max-width: calc(100vw - 24px); padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #1a1a1c; box-shadow: 0 4px 16px #00000026; font-size: 13px; font-weight: 400; line-height: 1.7; text-align: left; white-space: normal; overflow-y: auto; }
+.info-popover strong { display: block; margin-bottom: 8px; font-size: 14px; }
+.info-popover p + p { margin-top: 8px; }
 label { display: block; font-size: 16px; line-height: 1.5; font-weight: 700; margin-bottom: 8px; }
 input, select { color: #1a1a1c; background-color: #fff; border: 1px solid #77777b; border-radius: 8px; min-height: 48px; width: 100%; padding: 10px 16px; line-height: 1.5; }
 select { cursor: pointer; padding-right: 36px; }
