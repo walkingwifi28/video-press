@@ -41,7 +41,7 @@ export default function App() {
         <div className="output-actions"><div><strong>{app.starting ? '開始準備中…' : app.running ? `処理中：${terminal.length} / ${app.videos.length}本` : `${app.videos.length}本の動画を順番に変換`}</strong><p className="hint">{app.probing ? '解析が終わるまでお待ちください。' : !app.videos.length ? '動画を追加してください。' : !app.outputDir.trim() ? '保存先フォルダーを指定してください。' : app.starting ? '実行環境を確認しています。' : '設定を確認して［出力］を押してください。'}</p></div><div className="action-buttons">{app.running && <button className="button outline" disabled={app.cancelling || app.starting} onClick={() => void app.cancel()}>{app.cancelling ? '停止中…' : 'キャンセル'}</button>}<button className="button primary" disabled={!app.canStart} onClick={() => void app.start()}>{app.starting ? '開始準備中…' : app.running ? '変換中…' : '出力'}</button></div></div>
         {Object.keys(app.progress).length > 0 && <div className="batch-progress"><div className="progress-summary" role="status"><span>{app.running ? '全体の進捗' : '処理結果'}</span><span>完了 {completed}本{failed ? ` ／ 失敗 ${failed}本` : ''}{cancelled ? ` ／ キャンセル ${cancelled}本` : ''}</span></div><progress value={progress} max={100} aria-label="バッチ全体の処理進捗" /></div>}
       </section>
-      <footer><p>Video Press <span>v0.1.0</span></p><p>デジタル庁デザインシステムに基づくUI</p></footer>
+      <footer><p>Video Press <span>v0.1.1</span></p><p>デジタル庁デザインシステムに基づくUI</p></footer>
     </main>
   </>;
 }

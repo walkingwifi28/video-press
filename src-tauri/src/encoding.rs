@@ -5,11 +5,21 @@ pub fn validate(settings: &Settings) -> Result<(), String> {
         (&settings.codec, &settings.container),
         (Codec::H264 | Codec::H265, Container::Mp4 | Container::Mkv)
             | (Codec::Vp9, Container::Webm | Container::Mkv)
+            | (
+                Codec::Av1,
+                Container::Mp4 | Container::Mkv | Container::Webm
+            )
     );
     if !compatible {
         return Err("コーデックと出力形式の組み合わせが無効です。".into());
     }
-    if settings.crf > if settings.codec == Codec::Vp9 { 63 } else { 51 } {
+    if settings.crf
+        > if matches!(settings.codec, Codec::Vp9 | Codec::Av1) {
+            63
+        } else {
+            51
+        }
+    {
         return Err("CRFが範囲外です。".into());
     }
     if ![0, 2160, 1440, 1080, 720, 480].contains(&settings.resolution)
@@ -30,6 +40,11 @@ pub fn validate(settings: &Settings) -> Result<(), String> {
     ];
     if if settings.codec == Codec::Vp9 {
         !["0", "1", "2", "3", "4", "5"].contains(&settings.preset.as_str())
+    } else if settings.codec == Codec::Av1 {
+        !settings
+            .preset
+            .parse::<u8>()
+            .is_ok_and(|preset| preset <= 13)
     } else {
         !presets.contains(&settings.preset.as_str())
     } {
@@ -72,6 +87,7 @@ pub fn encoder(codec: &Codec) -> &'static str {
         Codec::H264 => "libx264",
         Codec::H265 => "libx265",
         Codec::Vp9 => "libvpx-vp9",
+        Codec::Av1 => "libsvtav1",
     }
 }
 pub fn extension(container: &Container) -> &'static str {
@@ -159,6 +175,29 @@ pub fn arguments(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn av1_supports_containers_and_its_own_quality_and_presets() {
+        let mut settings: Settings = serde_json::from_value(serde_json::json!({
+            "codec":"av1","container":"mp4","crf":63,"resolution":0,"fps":0,"preset":"13"
+        }))
+        .expect("AV1 settings must deserialize");
+        for container in [Container::Mp4, Container::Mkv, Container::Webm] {
+            settings.container = container;
+            let args = arguments(&video(960.0, 540.0), &settings, "out.av1").unwrap();
+            assert!(args.windows(2).any(|pair| pair == ["-c:v", "libsvtav1"]));
+            assert!(args.windows(2).any(|pair| pair == ["-preset", "13"]));
+            assert!(!args.iter().any(|arg| arg == "-cpu-used"));
+        }
+        settings.crf = 64;
+        assert!(validate(&settings).is_err());
+        settings.crf = 32;
+        for preset in ["14", "-1", "medium"] {
+            settings.preset = preset.into();
+            assert!(validate(&settings).is_err());
+        }
+        settings.preset = "0".into();
+        assert!(validate(&settings).is_ok());
+    }
     fn video(w: f64, h: f64) -> VideoInfo {
         VideoInfo {
             id: "x".into(),

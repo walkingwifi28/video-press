@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { availableResolutions, dimensions, initialSettings, changeCodec, reconcileResolution, outputFps } from './settings';
+import { availableResolutions, dimensions, initialSettings, changeCodec, reconcileResolution, outputFps, validSettings } from './settings';
+import { codecSchema } from './types';
 
 describe('各入力に合わせた共通設定', () => {
+  it('AV1を選択でき、AV1用の形式・CRF・Presetに切り替わる', () => {
+    const codec = codecSchema.parse('av1');
+    const settings = changeCodec(initialSettings, codec);
+    expect(settings).toMatchObject({ codec: 'av1', container: 'mp4', crf: 32, preset: '6' });
+    for (const container of ['mp4', 'mkv', 'webm'] satisfies typeof settings.container[]) {
+      expect(validSettings({ ...settings, container, crf: 63, preset: '13' })).toBe(true);
+    }
+    expect(validSettings({ ...settings, crf: 64 })).toBe(false);
+    expect(validSettings({ ...settings, preset: '14' })).toBe(false);
+    expect(validSettings({ ...settings, preset: 'medium' })).toBe(false);
+    expect(validSettings(changeCodec(settings, 'h264'))).toBe(true);
+  });
   it('1080p以下の動画には上位の解像度候補を出さない', () => {
     expect(availableResolutions([{ width: 1920, height: 1080 }])).toEqual([0, 720, 480]);
   });

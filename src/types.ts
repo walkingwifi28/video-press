@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const codecSchema = z.enum(['h264', 'h265', 'vp9']);
+export const codecSchema = z.enum(['h264', 'h265', 'vp9', 'av1']);
 export const containerSchema = z.enum(['mp4', 'mkv', 'webm']);
 export const resolutionSchema = z.union([z.literal(0), z.literal(2160), z.literal(1440), z.literal(1080), z.literal(720), z.literal(480)]);
 export const fpsSchema = z.union([z.literal(0), z.literal(60), z.literal(30), z.literal(24)]);

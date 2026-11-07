@@ -27,6 +27,7 @@ pub enum Codec {
     H264,
     H265,
     Vp9,
+    Av1,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

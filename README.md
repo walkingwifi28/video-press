@@ -6,7 +6,7 @@
 
 - Windows 10/11（64ビット）とMicrosoft Edge WebView2 Runtime
 - `ffmpeg.exe` と `ffprobe.exe` を事前にインストールし、PATHに追加してください。追加後はアプリを再起動してください。
-- H.264にlibx264、H.265にlibx265、VP9にlibvpx-vp9が必要です。利用できるエンコーダーは起動時に確認します。
+- H.264にlibx264、H.265にlibx265、VP9にlibvpx-vp9、AV1にlibsvtav1が必要です。利用できるエンコーダーは起動時に確認します。
 
 ## 使い方
 
@@ -26,8 +26,9 @@
 | H.264 | MP4 / MKV | 0–51（初期23） | ultrafast〜veryslow |
 | H.265 | MP4 / MKV | 0–51（初期28） | ultrafast〜veryslow |
 | VP9 | WebM / MKV | 0–63（初期32） | cpu-used 0〜5 |
+| AV1（SVT-AV1） | MP4 / MKV / WebM | 0–63（初期32） | Preset 0〜13（初期6） |
 
-CRFは小さいほど高画質で、通常はファイルが大きくなります。VP9は速度設定の数字が大きいほど高速です。音声はMP4/MKVではAAC、WebMではOpusに変換します。最初の動画と最初の音声を対象とし、字幕・添付データは出力しません。ハードウェアエンコード、結合、動画別の設定、並列変換は対象外です。
+CRFは小さいほど高画質で、通常はファイルが大きくなります。VP9とAV1は速度設定の数字が大きいほど高速です。音声はMP4/MKVではAAC、WebMではOpusに変換します。最初の動画と最初の音声を対象とし、字幕・添付データは出力しません。ハードウェアエンコード、結合、動画別の設定、並列変換は対象外です。
 
 ## 開発
 
@@ -53,7 +54,7 @@ Windows実行ファイルとインストーラーは `src-tauri/target/release/`
 
 ## 検証
 
-フロントエンド9件、Rust単体6件、実ffmpeg統合3件が成功しています。Windows画面から横・縦動画を選択し、H.264・H.265・VP9で実出力しました。詳しくは [検証結果](docs/verification.md) を参照してください。
+フロントエンド10件、Rust単体7件、実ffmpeg統合4件が成功しています。Windows画面から横・縦動画を選択し、H.264・H.265・VP9で実出力しました。AV1はMP4・MKV・WebMの実変換を検証しています。詳しくは [検証結果](docs/verification.md) を参照してください。
 
 ## デザインの出典
 

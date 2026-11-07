@@ -58,6 +58,60 @@ async fn sample(path: &std::path::Path, duration: &str) {
 }
 
 #[tokio::test]
+async fn av1_encodes_mp4_mkv_and_webm() {
+    let dir = directory();
+    let input = dir.join("AV1 input.mp4");
+    sample(&input, "0.3").await;
+    for container in ["mp4", "mkv", "webm"] {
+        let config: Settings = serde_json::from_value(serde_json::json!({
+            "codec":"av1","container":container,"crf":32,"resolution":480,"fps":24,"preset":"12"
+        }))
+        .expect("AV1 settings must be supported");
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let collected = events.clone();
+        run_batch(
+            "av1-test".into(),
+            vec![input.to_string_lossy().into()],
+            dir.to_string_lossy().into(),
+            config,
+            Cancellation::default(),
+            move |event| collected.lock().unwrap().push(event),
+        )
+        .await
+        .unwrap();
+        let events = events.lock().unwrap();
+        let output = events
+            .iter()
+            .find(|event| event.status == "completed")
+            .unwrap_or_else(|| panic!("AV1 failed: {:?}", *events))
+            .output_path
+            .as_deref()
+            .unwrap();
+        let inspected = probe::inspect(output).await.unwrap();
+        assert_eq!((inspected.width, inspected.height), (852.0, 480.0));
+        assert_eq!(inspected.fps, Some(24.0));
+        let codec = probe::command("ffprobe")
+            .args([
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=codec_name",
+                "-of",
+                "csv=p=0",
+                output,
+            ])
+            .output()
+            .await
+            .unwrap();
+        assert!(codec.status.success());
+        assert_eq!(String::from_utf8_lossy(&codec.stdout).trim(), "av1");
+    }
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[tokio::test]
 async fn real_batch_continues_after_failure_and_never_overwrites() {
     let dir = directory();
     let input = dir.join("日本語 input.mp4");

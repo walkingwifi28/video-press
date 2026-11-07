@@ -3,7 +3,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open } from '@tauri-apps/plugin-dialog';
-import { environmentSchema, probeResultsSchema, progressSchema } from './types';
+import { codecSchema, environmentSchema, probeResultsSchema, progressSchema } from './types';
 import type { Environment, FileProgress, ProbeResult, Settings } from './types';
 import { availableResolutions, changeCodec, encoderNames, initialSettings, reconcileResolution, validSettings } from './settings';
 import { pathKey } from './paths';
@@ -74,7 +74,7 @@ export function useVideoPress() {
       if (disposed) return;
       const env = environmentSchema.parse(value);
       setEnvironment(env);
-      const availableCodec = (['h264', 'h265', 'vp9'] satisfies Settings['codec'][]).find((codec) => env.encoders.includes(encoderNames[codec]));
+      const availableCodec = codecSchema.options.find((codec) => env.encoders.includes(encoderNames[codec]));
       if (availableCodec) setSettings((s) => env.encoders.includes(encoderNames[s.codec]) ? s : changeCodec(s, availableCodec));
     }).catch((e: unknown) => { if (!disposed) setError(`実行環境を確認できませんでした。${message(e)}`); });
     listen<unknown>('batch-progress', ({ payload }) => {
