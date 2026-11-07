@@ -1,6 +1,6 @@
 import type { Codec, Resolution, Settings } from './types';
 
-export const initialSettings: Settings = { codec: 'h264', container: 'mp4', crf: 23, resolution: 0, fps: 0, preset: 'medium' };
+export const initialSettings: Settings = { codec: 'h264', container: 'mp4', crf: 36, resolution: 0, fps: 0, preset: 'veryslow' };
 const frames: Record<Resolution, [number, number]> = {
   0: [Infinity, Infinity], 2160: [3840, 2160], 1440: [2560, 1440],
   1080: [1920, 1080], 720: [1280, 720], 480: [854, 480],

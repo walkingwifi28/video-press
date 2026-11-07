@@ -17,10 +17,10 @@ describe('動画ごとの設定一覧', () => {
     expect(sliders[0]).toContain('min="0"');
     expect(sliders[0]).toContain('max="51"');
     expect(sliders[0]).toContain('step="1"');
-    expect(sliders[0]).toContain('value="23"');
+    expect(sliders[0]).toContain('value="36"');
     expect(sliders[1]).toContain('max="63"');
     expect(sliders[1]).toContain('value="63"');
-    expect(sliders[0]).toContain('title="CRF 23"');
+    expect(sliders[0]).toContain('title="CRF 36"');
     expect(sliders[1]).toContain('title="CRF 63"');
     expect(html).not.toContain('quality-value');
     expect(html).toContain('高画質');

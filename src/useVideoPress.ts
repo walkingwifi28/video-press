@@ -32,7 +32,7 @@ export function useVideoPress() {
   const videos = useMemo(() => results.flatMap((r) => r.status === 'ready' ? [r.video] : []), [results]);
   const defaultSettings = useMemo(() => {
     const codec = codecSchema.options.find((codec) => environment?.encoders.includes(encoderNames[codec]));
-    return codec ? changeCodec(initialSettings, codec) : initialSettings;
+    return codec && codec !== initialSettings.codec ? changeCodec(initialSettings, codec) : initialSettings;
   }, [environment]);
   const settingsFor = (id: string) => settingsById[id] ?? defaultSettings;
   const jobs = useMemo(() => videos.map((v) => ({ path: v.path, settings: settingsById[v.id] ?? defaultSettings })), [videos, settingsById, defaultSettings]);
