@@ -56,6 +56,8 @@ npm run tauri build
 
 Windows実行ファイルとインストーラーは `src-tauri/target/release/` 以下に出力されます。ffmpegはアプリに同梱しません。
 
+アプリアイコンは `powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1` で再生成できます。Vの輪郭を高解像度で描画してから縮小し、16〜256pxの各サイズを `src-tauri/icons/icon.ico` に収録します。
+
 初回ビルドではTauriが公式NSIS配布ツールを取得するため、インターネット接続が必要です。npmとCargoのロックファイルを維持してください。TauriのJavaScript側とRust側は同じマイナーバージョン系列を使用します。
 
 ## 検証
