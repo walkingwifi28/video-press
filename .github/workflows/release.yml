@@ -23,6 +23,16 @@ jobs:
 
       - run: npm ci
 
+      - name: Set app version from release tag
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $configPath = 'src-tauri/tauri.conf.json'
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+          $config.version = $env:RELEASE_TAG -replace '^v', ''
+          $config | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $configPath -Encoding utf8NoBOM
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
